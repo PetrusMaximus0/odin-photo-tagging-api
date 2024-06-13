@@ -8,9 +8,6 @@ const sessionController = require('../controllers/session');
 router.get('/', sessionController.sessions);
 
 //
-router.get('/rankings', sessionController.rankings);
-
-//
 router.post('/start-game', sessionController.startGame);
 
 //

@@ -16,21 +16,6 @@ exports.sessions = asyncHandler(async (req, res) => {
 	}
 });
 
-exports.rankings = asyncHandler(async (req, res) => {
-	const result = await Session.find({ endTime: { $exists: true } });
-	if (!result) {
-		res.sendStatus(404);
-	}
-
-	if (result.length > 1) {
-		result.sort((a, b) => {
-			return a.totalTime - b.totalTime;
-		});
-	}
-
-	res.send({ rankings: result });
-});
-
 exports.startGame = asyncHandler(async (req, res) => {
 	// Assume this is a new session
 	const newSession = new Session({
@@ -67,14 +52,14 @@ exports.endGame = [
 
 	// Handle the route
 	asyncHandler(async (req, res) => {
+		// Store the end time before the awaits so that the end time does not depend on how fast the queries happen.
+		const endTime = new Date();
+
 		// Validate the request
 		const errors = validationResult(req);
 		if (!errors.isEmpty()) {
 			res.status(400).send({ errors: errors.array() });
 		}
-
-		// Store the end time before the awaits so that the end time does not depend on how fast the queries happen.
-		const endTime = new Date();
 
 		// Retrieve the current session
 		const session = await Session.findById(req.body.id);
@@ -109,7 +94,7 @@ exports.endGame = [
 					lastGame: true,
 				},
 				{
-					username: req.body.username,
+					username: req.body.username || 'Anonymous',
 					totalTime: totalTime,
 					lastGame: true,
 				}

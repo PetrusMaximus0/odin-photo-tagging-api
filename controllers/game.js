@@ -59,3 +59,18 @@ exports.verifyClick = asyncHandler((req, res) => {
 		res.status(200).send({ result: false });
 	}
 });
+
+exports.rankings = asyncHandler(async (req, res) => {
+	const result = await Session.find({ endTime: { $exists: true } });
+	if (!result) {
+		res.sendStatus(404);
+	}
+
+	if (result.length > 1) {
+		result.sort((a, b) => {
+			return a.totalTime - b.totalTime;
+		});
+	}
+
+	res.send({ rankings: result });
+});
