@@ -6,6 +6,8 @@ const Score = require('../models/Score');
 const asyncHandler = require('express-async-handler');
 const { body, validationResult } = require('express-validator');
 
+const clearOldUnfinishedSessions = asyncHandler(() => {});
+
 exports.sessions = asyncHandler(async (req, res) => {
 	const result = await Session.find({});
 
@@ -21,14 +23,17 @@ exports.startGame = asyncHandler(async (req, res) => {
 	const newSession = new Session({
 		startTime: new Date(),
 	});
-	await newSession.save();
-	res.status(200).send(newSession);
+	const session = await newSession.save();
+	if (session === null) {
+		res.sendStatus(500);
+	}
+	res.status(200).send({ session: session });
 });
 
 const storeResult = async (req, totalTime) => {
 	// Create the new score document
 	const newScore = new Score({
-		username: req.body.username || 'Anonymous',
+		username: 'Anonymous',
 		totalTime: totalTime,
 		lastGame: false,
 	});
@@ -43,11 +48,12 @@ const storeResult = async (req, totalTime) => {
 	if (!savedScore || !deletedSession) {
 		res.sendStatus(500);
 	}
+
+	return savedScore;
 };
 
 exports.endGame = [
 	// Validate input
-	body('username').trim().isLength({ max: 10 }).escape(),
 	body('id').trim().isLength({ min: 1 }).escape(),
 
 	// Handle the route
@@ -74,19 +80,19 @@ exports.endGame = [
 		//
 		if (scores.length < 10) {
 			// We have less than 10 scores, store the score on the board.
-			storeResult(req, totalTime);
+			const score = storeResult(req, totalTime);
 
 			//
-			res.sendStatus(201);
+			res.status(201).send(score);
 		} else if (totalTime < scores[9].totalTime) {
 			// This session score is in the top 10
-			storeResult(req, totalTime);
+			const score = storeResult(req, totalTime);
 
 			// Delete the last score from the board
 			const deleteLastScore = await Score.findByIdAndDelete(scores[9]._id);
 			if (!deleteLastScore) res.sendStatus(500);
 
-			res.sendStatus(201);
+			res.status(201).send(score);
 		} else {
 			// This session score is NOT in the top 10, store as last game's result.
 			const updatedScore = await Score.findOneAndUpdate(
@@ -94,7 +100,7 @@ exports.endGame = [
 					lastGame: true,
 				},
 				{
-					username: req.body.username || 'Anonymous',
+					username: 'Anonymous',
 					totalTime: totalTime,
 					lastGame: true,
 				}
