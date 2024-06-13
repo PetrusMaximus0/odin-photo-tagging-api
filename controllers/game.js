@@ -1,4 +1,8 @@
 const asyncHandler = require('express-async-handler');
+const Session = require('../models/Session');
+
+const { body, validationResult } = require('express-validator');
+const Score = require('../models/Score');
 
 const solutions = {
 	yeldo: { x: 0.07, y: 0.69, discovered: false },
@@ -74,3 +78,29 @@ exports.rankings = asyncHandler(async (req, res) => {
 
 	res.send({ rankings: result });
 });
+
+exports.saveUser = [
+	//
+	body('id').trim().isLength({ min: 1 }).escape(),
+	body('username').trim().isLength({ min: 1, max: 10 }).escape(),
+
+	//
+	asyncHandler(async (req, res) => {
+		// Validate and sanitize the inputs
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			res.status(400).send({ username: req.body.username, error: errors });
+		}
+
+		// save the username
+		const score = await Score.findByIdAndUpdate(req.body.id, {
+			username: req.body.username,
+		});
+		if (score === null) {
+			res.sendStatus(404);
+		}
+
+		//
+		res.sendStatus(201);
+	}),
+];
