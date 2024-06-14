@@ -8,9 +8,12 @@ const sessionController = require('../controllers/session');
 router.get('/', sessionController.sessions);
 
 //
-router.post('/start-game', sessionController.startGame);
+router.post('/start', sessionController.startGame);
 
 //
-router.put('/end-game', sessionController.endGame);
+router.post('/close', sessionController.endGame);
+
+//
+router.put('/save-user', sessionController.saveUser);
 
 module.exports = router;

@@ -39,7 +39,7 @@ const storeResult = async (req, totalTime) => {
 	});
 
 	// Save the score document and delete the current session
-	const [savedScore, deletedSession] = await Promises([
+	const [savedScore, deletedSession] = await Promise.all([
 		newScore.save(),
 		Session.findByIdAndDelete(req.body.id),
 	]);
@@ -69,29 +69,32 @@ exports.endGame = [
 
 		// Retrieve the current session
 		const session = await Session.findById(req.body.id);
-		if (!session) res.sendStatus(404);
+		if (!session) {
+			res.sendStatus(404);
+		}
 
 		// Calculate the total time
-		const totalTime = endTime.getTime() - Date(session.startTime).getTime();
+		const totalTime = endTime.getTime() - session.startTime.getTime();
 
 		//
-		const scores = await Score.find({}).sort({ totalTime: 1 });
+		const scores = await Score.find({}).sort({ totalTime: 1 }).exec();
 
 		//
 		if (scores.length < 10) {
 			// We have less than 10 scores, store the score on the board.
-			const score = storeResult(req, totalTime);
-
-			//
+			const score = await storeResult(req, totalTime);
 			res.status(201).send(score);
 		} else if (totalTime < scores[9].totalTime) {
 			// This session score is in the top 10
-			const score = storeResult(req, totalTime);
+			const score = await storeResult(req, totalTime);
 
 			// Delete the last score from the board
 			const deleteLastScore = await Score.findByIdAndDelete(scores[9]._id);
-			if (!deleteLastScore) res.sendStatus(500);
+			if (!deleteLastScore) {
+				res.sendStatus(500);
+			}
 
+			//
 			res.status(201).send(score);
 		} else {
 			// This session score is NOT in the top 10, store as last game's result.
@@ -103,10 +106,32 @@ exports.endGame = [
 					username: 'Anonymous',
 					totalTime: totalTime,
 					lastGame: true,
+				},
+				{
+					upsert: true,
 				}
 			);
-			if (!updatedScore) res.sendStatus(500);
 
+			//
+			if (!updatedScore) {
+				res.sendStatus(500);
+			}
+
+			//
+			res.status(201).send(updatedScore);
+		}
+	}),
+];
+
+exports.saveUser = [
+	// Should validate and sanitize first.
+	asyncHandler(async (req, res) => {
+		const score = await Score.findByIdAndUpdate(req.body.id, {
+			username: req.body.username,
+		});
+		if (score === null) {
+			res.sendStatus(404);
+		} else {
 			res.sendStatus(201);
 		}
 	}),
