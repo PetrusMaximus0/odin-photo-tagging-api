@@ -65,7 +65,7 @@ exports.verifyClick = asyncHandler((req, res) => {
 });
 
 exports.rankings = asyncHandler(async (req, res) => {
-	const result = await Session.find({ endTime: { $exists: true } });
+	const result = await Score.find({}).exec();
 	if (!result) {
 		res.sendStatus(404);
 	}
