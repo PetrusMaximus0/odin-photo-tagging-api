@@ -7,7 +7,6 @@ const initializeMongoServer = require('./mongoConfigDev');
 
 // Routers
 const indexRouter = require('./routes/index');
-const usersRouter = require('./routes/users');
 const gameRouter = require('./routes/game');
 const sessionRouter = require('./routes/session');
 
@@ -24,7 +23,6 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
 app.use('/game', gameRouter);
 app.use('/session', sessionRouter);
 
