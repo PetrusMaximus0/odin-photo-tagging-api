@@ -1,6 +1,4 @@
 const asyncHandler = require('express-async-handler');
-const Session = require('../models/Session');
-
 const { body, validationResult } = require('express-validator');
 const Score = require('../models/Score');
 
@@ -92,15 +90,42 @@ exports.saveUser = [
 			res.status(400).send({ username: req.body.username, error: errors });
 		}
 
-		// save the username
-		const score = await Score.findByIdAndUpdate(req.body.id, {
-			username: req.body.username,
-		});
-		if (score === null) {
-			res.sendStatus(404);
-		}
+		// Check if the username is in use. If it is, compare the two scores and save the better score.
+		const oldScore = await Score.findOne({ username: req.body.username });
 
-		//
-		res.sendStatus(201);
+		if (!oldScore) {
+			// There is no old score with this username, add the username to the pre-created anonymous score.
+			const score = await Score.findByIdAndUpdate(req.body.id, {
+				username: req.body.username,
+			});
+
+			//
+			score === null ? res.sendStatus(404) : res.status(201).send(score);
+		} else {
+			// A score document was found with the chosen username.
+			const score = await Score.findById(req.body.id);
+			if (score === null) {
+				res.sendStatus(404);
+			}
+			// Compare the old score with the new one
+			if (score.totalTime < oldScore.totalTime) {
+				// Delete the old score and save the username to the new score.
+				score.username = req.body.username;
+				const [savedScore, deletedScore] = await Promise.all([
+					score.save(),
+					Score.findByIdAndDelete(oldScore._id),
+				]);
+
+				//
+				savedScore === null || deletedScore === null
+					? res.sendStatus(500)
+					: res.sendStatus(201);
+			} else {
+				// The new score's total time is higher than the old score. Delete the new score and keep the old one.
+				const deletedScore = await Score.findByIdAndDelete(req.body.id);
+
+				deletedScore === null ? res.sendStatus(404) : res.sendStatus(200);
+			}
+		}
 	}),
 ];
