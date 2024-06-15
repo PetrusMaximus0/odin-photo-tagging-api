@@ -6,7 +6,20 @@ const Score = require('../models/Score');
 const asyncHandler = require('express-async-handler');
 const { body, validationResult } = require('express-validator');
 
-const clearOldUnfinishedSessions = asyncHandler(() => {});
+// Periodical clean up of unfinished sessions
+const sessionExpiryTime = 60 * 60 * 1000; // Equivalent to one hour
+setInterval(() => {
+	//
+	const cleanSessions = asyncHandler(async () => {
+		console.log('Session cleanup report: ');
+		const deletedSessions = await Session.deleteMany({
+			startTime: { $lt: new Date(new Date().getTime() - sessionExpiryTime) },
+		});
+		console.log(deletedSessions);
+	});
+	//
+	cleanSessions();
+}, sessionExpiryTime);
 
 exports.sessions = asyncHandler(async (req, res) => {
 	const result = await Session.find({});
@@ -28,6 +41,14 @@ exports.startGame = asyncHandler(async (req, res) => {
 		res.sendStatus(500);
 	}
 	res.status(200).send({ session: session });
+});
+
+exports.cancelGame = asyncHandler(async (req, res) => {
+	const session = await Session.findByIdAndDelete(req.body.id);
+	const status = session === null ? 404 : 200;
+	const payload =
+		session === null ? { message: 'Couldnt find the session!' } : session;
+	res.status(status).send(payload);
 });
 
 const storeResult = async (req, totalTime) => {
@@ -119,20 +140,6 @@ exports.endGame = [
 
 			//
 			res.status(201).send(updatedScore);
-		}
-	}),
-];
-
-exports.saveUser = [
-	// Should validate and sanitize first.
-	asyncHandler(async (req, res) => {
-		const score = await Score.findByIdAndUpdate(req.body.id, {
-			username: req.body.username,
-		});
-		if (score === null) {
-			res.sendStatus(404);
-		} else {
-			res.sendStatus(201);
 		}
 	}),
 ];

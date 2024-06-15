@@ -9,4 +9,7 @@ router.post('/verifyClick', gameController.verifyClick);
 //
 router.get('/rankings', gameController.rankings);
 
+//
+router.put('/save-user-score', gameController.saveUser);
+
 module.exports = router;

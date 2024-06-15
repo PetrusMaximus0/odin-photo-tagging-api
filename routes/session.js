@@ -11,9 +11,9 @@ router.get('/', sessionController.sessions);
 router.post('/start', sessionController.startGame);
 
 //
-router.post('/close', sessionController.endGame);
+router.delete('/cancel', sessionController.cancelGame);
 
 //
-router.put('/save-user', sessionController.saveUser);
+router.post('/close', sessionController.endGame);
 
 module.exports = router;
