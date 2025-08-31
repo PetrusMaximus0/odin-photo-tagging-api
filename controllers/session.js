@@ -8,18 +8,17 @@ const { body, validationResult } = require('express-validator');
 
 // Periodical clean up of unfinished sessions
 const sessionExpiryTime = 60 * 60 * 1000; // Equivalent to one hour
-setInterval(() => {
-	//
-	const cleanSessions = asyncHandler(async () => {
-		console.log('Session cleanup report: ');
-		const deletedSessions = await Session.deleteMany({
-			startTime: { $lt: new Date(new Date().getTime() - sessionExpiryTime) },
-		});
-		console.log(deletedSessions);
+const cleanSessions = asyncHandler(async () => {
+	console.log('Session cleanup report: ');
+	const expiryDate = new Date(Date.now() - sessionExpiryTime);
+	console.log('Expiry Time: ', expiryDate);
+	const deletedSessions = await Session.deleteMany({
+		startTime: { $lt: expiryDate },
 	});
-	//
-	cleanSessions();
-}, sessionExpiryTime);
+	console.log(deletedSessions);
+});
+cleanSessions();
+setInterval(cleanSessions, 60000);
 
 exports.sessions = asyncHandler(async (req, res) => {
 	const result = await Session.find({});

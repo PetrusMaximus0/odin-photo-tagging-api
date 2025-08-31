@@ -3,7 +3,7 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 //
-const initializeMongoServer = require('./mongoConfigDev');
+const initializeMongoServer = require('./mongoConfig');
 
 // Routers
 const indexRouter = require('./routes/index');
